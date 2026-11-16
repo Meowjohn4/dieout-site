@@ -149,8 +149,8 @@ $("#tickets").innerHTML=`<div class="page"><h1>Tickets</h1><p class="sub">เล
 function rB(){const r=R[role];
 $("#member").innerHTML=`<div class="page"><h1>Member</h1><p class="sub">เข้าสู่ระบบเพื่อรับสิทธิ์สมาชิก</p><div class="tk"><div>
 <div class="tabs">${R.map((x,i)=>`<button class="opt ${i==role?"on":""}" data-o="${i}">${x[0]}</button>`).join("")}</div>
-<input class="fld" type="email" placeholder="อีเมล" autocomplete="off"><input class="fld" type="password" placeholder="รหัสผ่าน" autocomplete="off">
-<button class="btn b" style="width:100%" data-t="ตัวอย่างหน้าเข้าสู่ระบบ ยังไม่ได้เชื่อมระบบจริง">เข้าสู่ระบบ</button></div>
+<input id="login-email" class="fld" type="email" placeholder="อีเมล" autocomplete="email"><input id="login-password" class="fld" type="password" placeholder="รหัสผ่าน" autocomplete="current-password">
+<button id="login-btn" class="btn b" style="width:100%" type="button">เข้าสู่ระบบ</button></div>
 <div><h2>${r[0]}</h2>${r[1].map(x=>`<div class="perk">${x}</div>`).join("")}</div></div>${NOTE}</div>`}
 
 const RN={artists:rA,music:rM,news:rN,shows:rS,tickets:rT,member:rB};
@@ -169,6 +169,57 @@ else if(d.o!==undefined){role=+d.o;rB()}
 else if(d.t)toast(d.t)});
 let raf;const hm=$("#home");addEventListener("pointermove",e=>{if(raf)return;raf=requestAnimationFrame(()=>{raf=0;hm.style.setProperty("--px",(e.clientX/innerWidth*2-1).toFixed(3));hm.style.setProperty("--py",(e.clientY/innerHeight*2-1).toFixed(3))})},{passive:true});
 setInterval(()=>{if(location.hash==="#music")cd()},1000);
+
+async function doLogin(){
+  const emailEl = $("#login-email");
+  const passwordEl = $("#login-password");
+  const btn = $("#login-btn");
+  if(!emailEl || !passwordEl || !btn) return;
+
+  const email = emailEl.value.trim();
+  const password = passwordEl.value;
+
+  if(!email || !password){
+    toast("กรุณากรอกอีเมลและรหัสผ่าน");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "กำลังเข้าสู่ระบบ...";
+
+  try{
+    const res = await fetch("login.php", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({email, password})
+    });
+
+    const data = await res.json();
+
+    if(data.success){
+      toast("เข้าสู่ระบบสำเร็จ");
+      setTimeout(() => location.reload(), 600);
+    }else{
+      toast(data.message || "อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+    }
+  }catch(err){
+    toast("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "เข้าสู่ระบบ";
+  }
+}
+
+document.addEventListener("click", e => {
+  if(e.target.closest("#login-btn")) doLogin();
+});
+
+document.addEventListener("keydown", e => {
+  if(e.key === "Enter" && location.hash === "#member" && e.target.closest("#login-email,#login-password")){
+    doLogin();
+  }
+});
+
 </script>
 </body>
 </html>
